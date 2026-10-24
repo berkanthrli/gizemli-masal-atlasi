@@ -323,6 +323,18 @@ main:before{
  .story-card:after{inset:7px;border-radius:16px}
 }
 
+#bookPages{width:100%;height:100%;position:relative}
+#bookPages .page{background:linear-gradient(105deg,#fff9e8,#f5e7c8);color:#342e27;border:1px solid #d7c18b;overflow:hidden}
+#bookPages .page.--left{box-shadow:inset -14px 0 20px -20px #47351d}
+#bookPages .page.--right{box-shadow:inset 14px 0 20px -20px #47351d}
+#bookPages .page-inner{height:100%;box-sizing:border-box;padding:clamp(22px,3.2vw,44px) clamp(20px,3vw,38px) 36px;position:relative;background:radial-gradient(ellipse at 90% 10%,#e6d4a744,transparent 30%),repeating-linear-gradient(0deg,#6c512009 0 1px,transparent 1px 5px)}
+#bookPages .page-text{font-family:"Trebuchet MS","Arial Rounded MT Bold",system-ui,sans-serif;font-size:clamp(.92rem,1.2vw,1.08rem);line-height:1.78;max-height:100%;overflow:hidden}
+#bookPages .page-text p{margin:0;text-indent:1.2em}
+#bookPages .page-number{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#8e7131;font-size:.75rem}
+#bookPages .page.--cover{background:radial-gradient(ellipse at 12% 90%,#41637a88,transparent 38%),linear-gradient(135deg,#14284d,#07132e 70%,#243b5b);color:#fff5d9}
+#bookPages .page.--cover .page-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:none;border:8px ridge #c49a47}
+#bookPages .page.--cover h2{font-size:clamp(2rem,4vw,3.2rem);color:#fff5d9}
+@media(max-width:650px){#bookPages .page-inner{padding:18px 14px 30px}#bookPages .page-text{font-size:.82rem;line-height:1.62}}
 </style>
 </head>
 <body>
@@ -456,7 +468,7 @@ main:before{
 <div class="book-overlay" id="bookOverlay" aria-hidden="true">
   <div class="book-modal" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
     <button class="book-close" id="closeBook" type="button" aria-label="Kitabı kapat">✕</button>
-    <div class="book-hint">✦ Sayfanın köşesini tut ve çevir ✦</div>
+    <div class="book-hint">✦ Sayfayı köşesinden tutup sürükleyerek çevir ✦</div>
     <div class="storybook" id="storybook">
       <div class="book-cover" id="bookCover">
         <div class="cover-stars">✧ ✦ ✧</div>
@@ -466,25 +478,14 @@ main:before{
         <div class="cover-decoration">❦</div>
         <button type="button" class="begin-reading" id="beginReading">Kitabı aç ✨</button>
       </div>
-      <div class="book-pages" id="bookPages" hidden>
-        <div class="book-page left-page" id="leftPage">
-          <div class="page-number" id="leftPageNumber"></div>
-          <div class="page-content" id="leftPageContent"></div>
-          <button type="button" class="page-corner left-corner" id="turnPrevPage" aria-label="Önceki sayfa"></button>
-        </div>
-        <div class="book-page right-page" id="rightPage">
-          <div class="page-number" id="rightPageNumber"></div>
-          <div class="page-content" id="rightPageContent"></div>
-          <button type="button" class="page-corner right-corner" id="turnPage" aria-label="Sonraki sayfa"></button>
-        </div>
-      </div>
+      <div class="book-pages" id="bookPages" hidden aria-label="Masal kitabı sayfaları"></div>
     </div>
     <div class="book-controls">
       <button type="button" id="prevPage" class="book-control">← Önceki</button>
       <span id="pageStatus">Kapak</span>
       <button type="button" id="nextPage" class="book-control">Sonraki →</button>
     </div>
-    <p class="book-small-hint">Sayfaları çevirmek için sağ veya sol alt köşeye ya da Önceki / Sonraki düğmelerine tıkla.</p>
+    <p class="book-small-hint">Sayfanın köşesini basılı tutup sürükle; istersen Önceki / Sonraki düğmelerini de kullan.</p>
   </div>
 </div>
 
@@ -532,111 +533,31 @@ document.getElementById('fontSize').addEventListener('change',event=>{
 (()=>{const spark=document.querySelector('.magic-spark');if(!spark)return;let last=0;document.addEventListener('pointermove',e=>{spark.style.left=e.clientX+'px';spark.style.top=e.clientY+'px';spark.classList.add('active');const now=Date.now();if(now-last>90){last=now;const tiny=document.createElement('span');tiny.textContent='✧';tiny.style.cssText=`position:fixed;left:${e.clientX+Math.random()*14-7}px;top:${e.clientY+Math.random()*14-7}px;z-index:9998;pointer-events:none;color:#f3d98f;font-size:${8+Math.random()*9}px;opacity:.7;transition:all .65s ease`;document.body.appendChild(tiny);requestAnimationFrame(()=>{tiny.style.transform='translateY(-13px) scale(.4)';tiny.style.opacity='0'});setTimeout(()=>tiny.remove(),700)}});document.addEventListener('pointerleave',()=>spark.classList.remove('active'));})();
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
 <script>
 (()=>{
- const overlay=document.getElementById('bookOverlay');
- if(!overlay)return;
- const titleEl=document.getElementById('bookTitle');
- const cover=document.getElementById('bookCover');
- const pages=document.getElementById('bookPages');
- const leftContent=document.getElementById('leftPageContent');
- const rightContent=document.getElementById('rightPageContent');
- const leftNum=document.getElementById('leftPageNumber');
- const rightNum=document.getElementById('rightPageNumber');
- const status=document.getElementById('pageStatus');
- const prev=document.getElementById('prevPage');
- const next=document.getElementById('nextPage');
- const turn=document.getElementById('turnPage');
- let paragraphs=[], pageChunks=[], spread=0, currentTitle='', dragging=false, startX=0;
- function escapeHtml(value){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
- function openBook(id){
-   const story=document.getElementById('story-'+id);
-   if(!story)return;
-   currentTitle=story.querySelector('h2').textContent.trim();
-   titleEl.textContent=currentTitle;
-   paragraphs=[...story.querySelectorAll('.story-body p')].map(p=>p.innerHTML.trim()).filter(Boolean);
-   pageChunks=[];
-   const fullText=paragraphs.map(par=>par.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g,' ').trim()).join(' ');
-   const maxChars=380;
-   let remaining=fullText;
-   while(remaining.length){
-     let cut=Math.min(maxChars,remaining.length);
-     if(cut<remaining.length){
-       const sentenceCut=Math.max(remaining.lastIndexOf('. ',cut),remaining.lastIndexOf('! ',cut),remaining.lastIndexOf('? ',cut));
-       if(sentenceCut>220)cut=sentenceCut+1;
-       else {const space=remaining.lastIndexOf(' ',cut);if(space>220)cut=space;}
-     }
-     const part=remaining.slice(0,cut).trim();
-     if(part)pageChunks.push(['<p>'+escapeHtml(part)+'</p>']);
-     remaining=remaining.slice(cut).trim();
-   }
-   if(!pageChunks.length)pageChunks=[['<p>Bu masal için metin bulunamadı.</p>']];
-   spread=0;cover.hidden=false;pages.hidden=true;
-   overlay.classList.add('visible');overlay.setAttribute('aria-hidden','false');document.body.classList.add('book-open');
-   status.textContent='Kapak';prev.disabled=true;next.disabled=false;
-   document.getElementById('beginReading').focus();
+ const overlay=document.getElementById('bookOverlay'); if(!overlay)return;
+ const titleEl=document.getElementById('bookTitle'),cover=document.getElementById('bookCover'),pages=document.getElementById('bookPages');
+ const status=document.getElementById('pageStatus'),prev=document.getElementById('prevPage'),next=document.getElementById('nextPage');
+ let currentTitle='',storyId=null,pageFlip=null;
+ function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
+ function chunks(text){const out=[];let rest=text;const max=760;while(rest.length){let cut=Math.min(max,rest.length);if(cut<rest.length){const sentence=Math.max(rest.lastIndexOf('. ',cut),rest.lastIndexOf('! ',cut),rest.lastIndexOf('? ',cut));if(sentence>max*.58)cut=sentence+1;else{const space=rest.lastIndexOf(' ',cut);if(space>max*.55)cut=space}}out.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim()}return out.length?out:['Bu masal için metin bulunamadı.']}
+ function update(){if(!pageFlip)return;const i=pageFlip.getCurrentPageIndex(),n=pageFlip.getPageCount();status.textContent='Sayfa '+(i+1)+' / '+n;prev.disabled=i<=0;next.disabled=i>=n-1}
+ function destroy(){if(pageFlip){try{pageFlip.destroy()}catch(e){}pageFlip=null}}
+ function build(story){destroy();pages.innerHTML='';const cp=document.createElement('div');cp.className='page --cover';cp.innerHTML='<div class="page-inner"><div style="font-size:2.5rem;color:#f8dfa0">✧ ✦ ✧</div><div style="font-size:3rem;color:#f4dfaa">☾</div><div style="font-size:.72rem;letter-spacing:.2em;color:#e9c979;margin-top:14px">GİZEMLİ MASAL ATLASI</div><h2>'+esc(currentTitle)+'</h2><div style="font-size:2rem;color:#e9c979">❦</div><p style="color:#f4dfaa">Masal yolculuğun başlıyor</p></div>';pages.appendChild(cp);
+ const text=[...story.querySelectorAll('.story-body p')].map(p=>p.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' ');
+ chunks(text).forEach((part,i)=>{const el=document.createElement('div');el.className='page';el.innerHTML='<div class="page-inner"><div class="page-text"><p>'+esc(part)+'</p></div><div class="page-number">'+(i+1)+'</div></div>';pages.appendChild(el)});
  }
- function renderSpread(){
-   const left=pageChunks[spread*2]||[];
-   const right=pageChunks[spread*2+1]||[];
-   leftContent.innerHTML=left.join('')||'<p>Masal burada başlıyor…</p>';
-   rightContent.innerHTML=right.join('')||'<p>Sonraki sayfa yakında…</p>';
-   leftNum.textContent=String(spread*2+1);
-   rightNum.textContent=String(Math.min(spread*2+2,pageChunks.length));
-   status.textContent=`Sayfa ${spread*2+1}–${Math.min(spread*2+2,pageChunks.length)} / ${pageChunks.length}`;
-   prev.disabled=spread===0;next.disabled=(spread*2+2)>=pageChunks.length;
-   document.getElementById('turnPrevPage').disabled=spread===0;
-   document.getElementById('turnPage').disabled=(spread*2+2)>=pageChunks.length;
- }
- function begin(){cover.hidden=true;pages.hidden=false;renderSpread()}
- let isTurning=false;
- function turnSpread(dir){
-   if(cover.hidden===false){begin();return}
-   if(isTurning)return;
-   const target=spread+dir;
-   if(target<0||target*2>=pageChunks.length)return;
-   isTurning=true;
-   pages.classList.remove('turning','turning-back');void pages.offsetWidth;
-   pages.classList.add(dir>0?'turning':'turning-back');
-   const page=dir>0?rightPage:leftPage;
-   const finish=()=>{
-     page.removeEventListener('animationend',finish);
-     spread=target;renderSpread();
-     pages.classList.remove('turning','turning-back');
-     isTurning=false;
-   };
-   page.addEventListener('animationend',finish,{once:true});
-   // Fallback for browsers that skip animationend in background tabs.
-   setTimeout(()=>{if(isTurning)finish()},900);
- }
- function closeBook(){overlay.classList.remove('visible');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('book-open')}
- document.querySelectorAll('.open-book').forEach(link=>link.addEventListener('click',e=>{
-   if(link.target==='_blank') return;
-   e.preventDefault();
-   const url=new URL('index.html',window.location.href);url.searchParams.set('masal',link.dataset.story);url.searchParams.set('v','4');
-   window.open(url.toString(),'_blank','noopener');
- }));
- const requestedStory=new URLSearchParams(window.location.search).get('masal');
- if(requestedStory){
-   document.body.classList.add('reader-mode');
-   openBook(requestedStory);
- }
- document.getElementById('beginReading').addEventListener('click',begin);
- prev.addEventListener('click',()=>turnSpread(-1));next.addEventListener('click',()=>turnSpread(1));turn.addEventListener('click',()=>turnSpread(1));
- document.getElementById('closeBook').addEventListener('click',closeBook);
- overlay.addEventListener('click',e=>{if(e.target===overlay)closeBook()});
- document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')closeBook();if(e.key==='ArrowRight')turnSpread(1);if(e.key==='ArrowLeft')turnSpread(-1)});
- // Click-to-turn interaction: predictable controls, no awkward half-drag state.
- nextCorner.addEventListener('click',e=>{e.preventDefault();turnSpread(1)});
- prevCorner.addEventListener('click',e=>{e.preventDefault();turnSpread(-1)});
- pages.addEventListener('click',e=>{
-   if(e.target.closest('.page-corner'))return;
-   const rect=pages.getBoundingClientRect();
-   const x=e.clientX-rect.left;
-   if(x>rect.width*.78)turnSpread(1);
-   else if(x<rect.width*.22)turnSpread(-1);
- });
-
+ function init(){if(!window.St||!window.St.PageFlip){status.textContent='Kitap motoru yüklenemedi';return}destroy();pageFlip=new St.PageFlip(pages,{width:520,height:650,size:'stretch',minWidth:280,maxWidth:1000,minHeight:360,maxHeight:1300,drawShadow:true,flippingTime:900,usePortrait:true,startPage:0,autoSize:true,maxShadowOpacity:.45,showCover:true,mobileScrollSupport:false,useMouseEvents:true,swipeDistance:25});pageFlip.loadFromHTML(pages.querySelectorAll('.page'));pageFlip.on('flip',update);pageFlip.on('init',update);update()}
+ function openBook(id){const story=document.getElementById('story-'+id);if(!story)return;storyId=id;currentTitle=story.querySelector('h2').textContent.trim();titleEl.textContent=currentTitle;cover.hidden=false;pages.hidden=true;pages.innerHTML='';overlay.classList.add('visible');overlay.setAttribute('aria-hidden','false');document.body.classList.add('book-open');status.textContent='Kapak';prev.disabled=true;next.disabled=false;document.getElementById('beginReading').focus()}
+ function begin(){if(!storyId)return;cover.hidden=true;pages.hidden=false;build(document.getElementById('story-'+storyId));requestAnimationFrame(init)}
+ function turn(dir){if(!pageFlip)return;if(dir>0)pageFlip.flipNext('bottom');else pageFlip.flipPrev('bottom')}
+ function close(){overlay.classList.remove('visible');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('book-open');destroy()}
+ document.querySelectorAll('.open-book').forEach(link=>link.addEventListener('click',e=>{if(link.target==='_blank')return;e.preventDefault();const u=new URL('index.html',location.href);u.searchParams.set('masal',link.dataset.story);u.searchParams.set('v','7');window.open(u.toString(),'_blank','noopener')}));
+ const requested=new URLSearchParams(location.search).get('masal');if(requested){document.body.classList.add('reader-mode');openBook(requested);setTimeout(begin,100)}
+ document.getElementById('beginReading').addEventListener('click',begin);prev.addEventListener('click',()=>turn(-1));next.addEventListener('click',()=>turn(1));document.getElementById('closeBook').addEventListener('click',close);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')close();if(e.key==='ArrowRight')turn(1);if(e.key==='ArrowLeft')turn(-1)});
+})();
 })();
 </script>
 
