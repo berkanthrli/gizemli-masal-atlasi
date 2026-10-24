@@ -362,16 +362,16 @@ main:before{
       <select id="fontSize" aria-label="Metin boyutu"><option value="1">Yazı boyutu: Normal</option><option value="1.1">Yazı boyutu: Büyük</option><option value="1.2">Yazı boyutu: Çok büyük</option></select>
     </div>
     <div class="story-index" id="storyIndex">
-<article class="index-card" data-title="altın saçlı kız" data-category="magic"><div class="number">MASAL 01</div><h3>Altın Saçlı Kız</h3><a href="?masal=1" class="open-book" data-story="1">Masalı oku ↗</a></article>
-<article class="index-card" data-title="altın top" data-category="people"><div class="number">MASAL 02</div><h3>Altın Top</h3><a href="?masal=2" class="open-book" data-story="2">Masalı oku ↗</a></article>
-<article class="index-card" data-title="tütüncü kızı" data-category="people"><div class="number">MASAL 03</div><h3>Tütüncü Kızı</h3><a href="?masal=3" class="open-book" data-story="3">Masalı oku ↗</a></article>
-<article class="index-card" data-title="tombul gözleme" data-category="animal"><div class="number">MASAL 04</div><h3>Tombul Gözleme</h3><a href="?masal=4" class="open-book" data-story="4">Masalı oku ↗</a></article>
-<article class="index-card" data-title="sevgiyle akan gözyaşları" data-category="magic"><div class="number">MASAL 05</div><h3>Sevgiyle Akan Gözyaşları</h3><a href="?masal=5" class="open-book" data-story="5">Masalı oku ↗</a></article>
-<article class="index-card" data-title="sihirli tencere" data-category="magic"><div class="number">MASAL 06</div><h3>Sihirli Tencere</h3><a href="?masal=6" class="open-book" data-story="6">Masalı oku ↗</a></article>
-<article class="index-card" data-title="perili ev" data-category="magic"><div class="number">MASAL 07</div><h3>Perili Ev</h3><a href="?masal=7" class="open-book" data-story="7">Masalı oku ↗</a></article>
-<article class="index-card" data-title="kocakarıyla tilki" data-category="animal"><div class="number">MASAL 08</div><h3>Kocakarıyla Tilki</h3><a href="?masal=8" class="open-book" data-story="8">Masalı oku ↗</a></article>
-<article class="index-card" data-title="aslan padişah ile fare" data-category="animal"><div class="number">MASAL 09</div><h3>Aslan Padişah ile Fare</h3><a href="?masal=9" class="open-book" data-story="9">Masalı oku ↗</a></article>
-<article class="index-card" data-title="tilki ile aslan" data-category="animal"><div class="number">MASAL 10</div><h3>Tilki ile Aslan</h3><a href="?masal=10" class="open-book" data-story="10">Masalı oku ↗</a></article>
+<article class="index-card" data-title="altın saçlı kız" data-category="magic"><div class="number">MASAL 01</div><h3>Altın Saçlı Kız</h3><a href="#masal-1" class="open-book" data-story="1">Masalı oku ↗</a></article>
+<article class="index-card" data-title="altın top" data-category="people"><div class="number">MASAL 02</div><h3>Altın Top</h3><a href="#masal-2" class="open-book" data-story="2">Masalı oku ↗</a></article>
+<article class="index-card" data-title="tütüncü kızı" data-category="people"><div class="number">MASAL 03</div><h3>Tütüncü Kızı</h3><a href="#masal-3" class="open-book" data-story="3">Masalı oku ↗</a></article>
+<article class="index-card" data-title="tombul gözleme" data-category="animal"><div class="number">MASAL 04</div><h3>Tombul Gözleme</h3><a href="#masal-4" class="open-book" data-story="4">Masalı oku ↗</a></article>
+<article class="index-card" data-title="sevgiyle akan gözyaşları" data-category="magic"><div class="number">MASAL 05</div><h3>Sevgiyle Akan Gözyaşları</h3><a href="#masal-5" class="open-book" data-story="5">Masalı oku ↗</a></article>
+<article class="index-card" data-title="sihirli tencere" data-category="magic"><div class="number">MASAL 06</div><h3>Sihirli Tencere</h3><a href="#masal-6" class="open-book" data-story="6">Masalı oku ↗</a></article>
+<article class="index-card" data-title="perili ev" data-category="magic"><div class="number">MASAL 07</div><h3>Perili Ev</h3><a href="#masal-7" class="open-book" data-story="7">Masalı oku ↗</a></article>
+<article class="index-card" data-title="kocakarıyla tilki" data-category="animal"><div class="number">MASAL 08</div><h3>Kocakarıyla Tilki</h3><a href="#masal-8" class="open-book" data-story="8">Masalı oku ↗</a></article>
+<article class="index-card" data-title="aslan padişah ile fare" data-category="animal"><div class="number">MASAL 09</div><h3>Aslan Padişah ile Fare</h3><a href="#masal-9" class="open-book" data-story="9">Masalı oku ↗</a></article>
+<article class="index-card" data-title="tilki ile aslan" data-category="animal"><div class="number">MASAL 10</div><h3>Tilki ile Aslan</h3><a href="#masal-10" class="open-book" data-story="10">Masalı oku ↗</a></article>
     </div>
     <p class="empty" id="empty">Bu aramayla eşleşen masal bulunamadı.</p>
   </section>
@@ -537,6 +537,8 @@ document.getElementById('fontSize').addEventListener('change',event=>{
 <script>
 (()=>{
  const overlay=document.getElementById('bookOverlay'); if(!overlay)return;
+ // Capture story-link clicks before any browser navigation; keep reading in the current page.
+ document.addEventListener('click',function(e){const link=e.target.closest('a.open-book');if(!link)return;e.preventDefault();e.stopPropagation();openBook(link.dataset.story)},true);
  const titleEl=document.getElementById('bookTitle'),cover=document.getElementById('bookCover'),pages=document.getElementById('bookPages');
  const status=document.getElementById('pageStatus'),prev=document.getElementById('prevPage'),next=document.getElementById('nextPage');
  let currentTitle='',storyId=null,pageFlip=null;
@@ -553,7 +555,7 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  function begin(){if(!storyId)return;cover.hidden=true;pages.hidden=false;build(document.getElementById('story-'+storyId));requestAnimationFrame(init)}
  function turn(dir){if(!pageFlip)return;if(dir>0)pageFlip.flipNext('bottom');else pageFlip.flipPrev('bottom')}
  function close(){overlay.classList.remove('visible');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('book-open');destroy()}
- document.querySelectorAll('.open-book').forEach(link=>link.addEventListener('click',e=>{e.preventDefault();openBook(link.dataset.story)}));
+ // Story links are handled by the capture listener above.
  const requested=new URLSearchParams(location.search).get('masal');if(requested){document.body.classList.add('reader-mode');openBook(requested);setTimeout(begin,100)}
  document.getElementById('beginReading').addEventListener('click',begin);prev.addEventListener('click',()=>turn(-1));next.addEventListener('click',()=>turn(1));document.getElementById('closeBook').addEventListener('click',close);
  overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')close();if(e.key==='ArrowRight')turn(1);if(e.key==='ArrowLeft')turn(-1)});
