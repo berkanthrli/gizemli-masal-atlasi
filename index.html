@@ -189,7 +189,13 @@ body.book-open{overflow:hidden}
 .page-number{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#8e7131;font-size:.75rem}
 .page-corner{position:absolute;bottom:0;width:46px;height:46px;border:0;background:linear-gradient(135deg,transparent 49%,#d8c18c 50%,#fff3d6 73%,#c8a85d 100%);cursor:grab;filter:drop-shadow(-2px -2px 2px #7b633522)}
 .right-corner{right:0;border-radius:12px 0 0 0}
-.left-corner{left:0;transform:scaleX(-1);pointer-events:none}
+.left-corner{left:0;transform:scaleX(-1);pointer-events:auto}
+.page-corner{touch-action:none;user-select:none;-webkit-user-select:none}
+.book-pages.is-dragging .book-page{transition:none!important}
+.book-pages.is-dragging .right-page{box-shadow:-12px 0 22px #3c2b1644}
+.book-pages.is-dragging .left-page{box-shadow:12px 0 22px #3c2b1644}
+.book-pages.is-dragging .page-corner{cursor:grabbing}
+
 .book-pages.turning .right-page{transform-origin:left center;animation:pageTurn .6s ease both;z-index:2}
 .book-pages.turning-back .left-page{transform-origin:right center;animation:pageTurnBack .6s ease both;z-index:2}
 .book-page{transition:transform .25s ease}
@@ -459,7 +465,7 @@ main:before{
         <div class="book-page left-page" id="leftPage">
           <div class="page-number" id="leftPageNumber"></div>
           <div class="page-content" id="leftPageContent"></div>
-          <div class="page-corner left-corner" aria-hidden="true"></div>
+          <button type="button" class="page-corner left-corner" id="turnPrevPage" aria-label="Önceki sayfa"></button>
         </div>
         <div class="book-page right-page" id="rightPage">
           <div class="page-number" id="rightPageNumber"></div>
@@ -537,6 +543,7 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  const next=document.getElementById('nextPage');
  const turn=document.getElementById('turnPage');
  let paragraphs=[], pageChunks=[], spread=0, currentTitle='', dragging=false, startX=0;
+ function escapeHtml(value){return value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
  function openBook(id){
    const story=document.getElementById('story-'+id);
    if(!story)return;
@@ -544,14 +551,20 @@ document.getElementById('fontSize').addEventListener('change',event=>{
    titleEl.textContent=currentTitle;
    paragraphs=[...story.querySelectorAll('.story-body p')].map(p=>p.innerHTML.trim()).filter(Boolean);
    pageChunks=[];
-   // Split text into book-sized page groups, keeping paragraph text intact.
-   let chunk=[], size=0;
-   paragraphs.forEach(par=>{
-     const plain=par.replace(/<[^>]*>/g,'').length;
-     if(size>0 && size+plain>520){pageChunks.push(chunk);chunk=[];size=0}
-     chunk.push(par);size+=plain;
-   });
-   if(chunk.length)pageChunks.push(chunk);
+   // Split the complete story into page-sized passages (not only between source paragraphs).
+   const fullText=paragraphs.map(par=>par.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim()).join('\n\n');
+   const maxChars=650;
+   let remaining=fullText;
+   while(remaining.length){
+     if(remaining.length<=maxChars){pageChunks.push(['<p>'+escapeHtml(remaining)+'</p>']);break;}
+     let cut=remaining.lastIndexOf(' ',maxChars);
+     const sentenceCut=Math.max(remaining.lastIndexOf('. ',maxChars),remaining.lastIndexOf('! ',maxChars),remaining.lastIndexOf('? ',maxChars));
+     if(sentenceCut>maxChars*0.55)cut=sentenceCut+1;
+     if(cut<maxChars*0.45)cut=maxChars;
+     const part=remaining.slice(0,cut).trim();
+     pageChunks.push(['<p>'+escapeHtml(part)+'</p>']);
+     remaining=remaining.slice(cut).trim();
+   }
    if(!pageChunks.length)pageChunks=[['<p>Bu masal için metin bulunamadı.</p>']];
    spread=0;cover.hidden=false;pages.hidden=true;
    overlay.classList.add('visible');overlay.setAttribute('aria-hidden','false');document.body.classList.add('book-open');
@@ -567,6 +580,8 @@ document.getElementById('fontSize').addEventListener('change',event=>{
    rightNum.textContent=String(Math.min(spread*2+2,pageChunks.length));
    status.textContent=`Sayfa ${spread*2+1}–${Math.min(spread*2+2,pageChunks.length)} / ${pageChunks.length}`;
    prev.disabled=spread===0;next.disabled=(spread*2+2)>=pageChunks.length;
+   document.getElementById('turnPrevPage').disabled=spread===0;
+   document.getElementById('turnPage').disabled=(spread*2+2)>=pageChunks.length;
  }
  function begin(){cover.hidden=true;pages.hidden=false;renderSpread()}
  function turnSpread(dir){
@@ -594,66 +609,66 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  document.getElementById('closeBook').addEventListener('click',closeBook);
  overlay.addEventListener('click',e=>{if(e.target===overlay)closeBook()});
  document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')closeBook();if(e.key==='ArrowRight')turnSpread(1);if(e.key==='ArrowLeft')turnSpread(-1)});
- // Hold and drag the bottom-right page corner; supports mouse, touch and stylus.
- // The page visibly follows the pointer while dragging, then turns only after a deliberate pull.
- let activePointer=null, startY=0, startCornerX=0, didDrag=false;
+ // Drag-only page turning: corners follow pointer; no click-to-turn.
+ let activeCorner=null, dragStartX=0, dragStartY=0, dragStartAngle=0;
  const rightPage=document.getElementById('rightPage');
- const corner=document.getElementById('turnPage');
- function resetDrag(){
-   dragging=false;activePointer=null;
-   pages.classList.remove('is-dragging');
-   rightPage.style.transform='';
+ const leftPage=document.getElementById('leftPage');
+ const nextCorner=document.getElementById('turnPage');
+ const prevCorner=document.getElementById('turnPrevPage');
+ function clearCornerDrag(){
+   dragging=false;activeCorner=null;pages.classList.remove('is-dragging');
+   rightPage.style.transform='';leftPage.style.transform='';
+   rightPage.style.filter='';leftPage.style.filter='';
  }
- corner.addEventListener('pointerdown',e=>{
-   if(pages.hidden || next.disabled || e.button===2)return;
+ function cornerDown(e,dir){
+   if(pages.hidden || e.button===2 || (dir>0?next.disabled:prev.disabled))return;
+   e.preventDefault();e.stopPropagation();
+   activeCorner=dir;dragging=true;dragStartX=e.clientX;dragStartY=e.clientY;
+   (dir>0?nextCorner:prevCorner).setPointerCapture?.(e.pointerId);
+   activePointer=e.pointerId;pages.classList.add('is-dragging');
+ }
+ function cornerMove(e){
+   if(!dragging || e.pointerId!==activePointer || !activeCorner)return;
    e.preventDefault();
-   dragging=true;didDrag=false;activePointer=e.pointerId;
-   startX=e.clientX;startY=e.clientY;startCornerX=e.clientX;
-   corner.setPointerCapture?.(e.pointerId);
-   pages.classList.add('is-dragging');
- });
- corner.addEventListener('pointermove',e=>{
-   if(!dragging || e.pointerId!==activePointer)return;
-   const dx=e.clientX-startX, dy=e.clientY-startY;
-   if(Math.abs(dx)>4 || Math.abs(dy)>4)didDrag=true;
-   const width=Math.max(180,rightPage.getBoundingClientRect().width);
-   const progress=Math.max(0,Math.min(1,(-dx)/width));
-   const angle=-Math.min(150,progress*150);
-   rightPage.style.transformOrigin='left center';
-   rightPage.style.transform='rotateY('+angle+'deg)';
-   rightPage.style.filter='brightness('+(1-progress*.22)+')';
- });
- function finishCornerDrag(e){
-   if(!dragging || (e.pointerId!==undefined && e.pointerId!==activePointer))return;
-   const dx=e.clientX-startX, dy=e.clientY-startY;
-   const width=Math.max(180,rightPage.getBoundingClientRect().width);
-   const shouldTurn=dx < -Math.max(38,width*.12) && Math.abs(dx)>Math.abs(dy)*.8;
-   resetDrag();
-   rightPage.style.filter='';
-   if(shouldTurn){
-     // Skip the button's synthetic click after a drag.
-     corner.dataset.dragged='true';
-     turnSpread(1);
-   }
+   const dx=e.clientX-dragStartX,dy=e.clientY-dragStartY;
+   const width=Math.max(180,(activeCorner>0?rightPage:leftPage).getBoundingClientRect().width);
+   const progress=Math.max(0,Math.min(1,activeCorner>0?-dx/width:dx/width));
+   const angle=(activeCorner>0?-1:1)*Math.min(155,progress*155);
+   const page=activeCorner>0?rightPage:leftPage;
+   page.style.transformOrigin=activeCorner>0?'left center':'right center';
+   page.style.transform='rotateY('+angle+'deg) rotateZ('+(Math.max(-5,Math.min(5,dy/18)))+'deg)';
+   page.style.filter='brightness('+(1-progress*.22)+')';
  }
- corner.addEventListener('pointerup',finishCornerDrag);
- corner.addEventListener('pointercancel',()=>{resetDrag();rightPage.style.filter=''});
- corner.addEventListener('click',e=>{
-   if(corner.dataset.dragged==='true'){e.preventDefault();e.stopImmediatePropagation();corner.dataset.dragged='false'}
+ function cornerUp(e){
+   if(!dragging || e.pointerId!==activePointer || !activeCorner)return;
+   const dir=activeCorner,dx=e.clientX-dragStartX,dy=e.clientY-dragStartY;
+   const width=Math.max(180,(dir>0?rightPage:leftPage).getBoundingClientRect().width);
+   const progress=dir>0?-dx/width:dx/width;
+   const shouldTurn=progress>.12 && Math.abs(dx)>Math.abs(dy)*.8;
+   clearCornerDrag();
+   if(shouldTurn)turnSpread(dir);
+ }
+ [nextCorner,prevCorner].forEach((corner,i)=>{
+   const dir=i===0?1:-1;
+   corner.addEventListener('pointerdown',e=>cornerDown(e,dir));
+   corner.addEventListener('pointermove',cornerMove);
+   corner.addEventListener('pointerup',cornerUp);
+   corner.addEventListener('pointercancel',clearCornerDrag);
+   corner.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation()});
  });
- // Allow dragging anywhere on the page as a swipe gesture, especially on touch screens.
  pages.addEventListener('pointerdown',e=>{
    if(pages.hidden || e.target.closest('.page-corner'))return;
-   dragging=true;activePointer=e.pointerId;startX=e.clientX;startY=e.clientY;
+   dragging=true;activePointer=e.pointerId;activeCorner=0;dragStartX=e.clientX;dragStartY=e.clientY;
    pages.setPointerCapture?.(e.pointerId);
  });
  pages.addEventListener('pointerup',e=>{
-   if(!dragging || e.pointerId!==activePointer)return;
-   const dx=e.clientX-startX,dy=e.clientY-startY;
-   resetDrag();
+   if(!dragging || e.pointerId!==activePointer || activeCorner!==0)return;
+   const dx=e.clientX-dragStartX,dy=e.clientY-dragStartY;
+   clearCornerDrag();
    if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.15)turnSpread(dx<0?1:-1);
  });
- pages.addEventListener('pointercancel',()=>{resetDrag();rightPage.style.transform='';rightPage.style.filter=''});
+ pages.addEventListener('pointercancel',clearCornerDrag);
+
 })();
 </script>
 
