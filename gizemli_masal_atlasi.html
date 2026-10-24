@@ -205,6 +205,13 @@ body.book-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.book-overlay.visible{animation:none}.book-pages.turning .right-page,.book-pages.turning-back .left-page{animation-duration:.01ms}}
 
 
+/* Interactive corner-drag page curl for mouse, touch and stylus */
+.page-corner{touch-action:none;user-select:none;-webkit-user-select:none}
+.right-page{transform-style:preserve-3d}
+.book-pages.is-dragging .right-page{transition:none!important;will-change:transform;box-shadow:-12px 0 22px #3c2b1644}
+.book-pages.is-dragging .right-corner{cursor:grabbing}
+.book-pages.is-dragging{touch-action:none}
+
 /* Watercolor brushwork throughout the page and the reading book */
 body{
  background-color:#e9e0ce;
@@ -587,10 +594,66 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  document.getElementById('closeBook').addEventListener('click',closeBook);
  overlay.addEventListener('click',e=>{if(e.target===overlay)closeBook()});
  document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')closeBook();if(e.key==='ArrowRight')turnSpread(1);if(e.key==='ArrowLeft')turnSpread(-1)});
- // Drag a page corner or swipe across a page to turn it like a physical book.
- pages.addEventListener('pointerdown',e=>{if(pages.hidden)return;dragging=true;startX=e.clientX;pages.setPointerCapture?.(e.pointerId)});
- pages.addEventListener('pointerup',e=>{if(!dragging)return;const delta=e.clientX-startX;dragging=false;if(Math.abs(delta)>45)turnSpread(delta<0?1:-1)});
- pages.addEventListener('pointercancel',()=>dragging=false);
+ // Hold and drag the bottom-right page corner; supports mouse, touch and stylus.
+ // The page visibly follows the pointer while dragging, then turns only after a deliberate pull.
+ let activePointer=null, startY=0, startCornerX=0, didDrag=false;
+ const rightPage=document.getElementById('rightPage');
+ const corner=document.getElementById('turnPage');
+ function resetDrag(){
+   dragging=false;activePointer=null;
+   pages.classList.remove('is-dragging');
+   rightPage.style.transform='';
+ }
+ corner.addEventListener('pointerdown',e=>{
+   if(pages.hidden || next.disabled || e.button===2)return;
+   e.preventDefault();
+   dragging=true;didDrag=false;activePointer=e.pointerId;
+   startX=e.clientX;startY=e.clientY;startCornerX=e.clientX;
+   corner.setPointerCapture?.(e.pointerId);
+   pages.classList.add('is-dragging');
+ });
+ corner.addEventListener('pointermove',e=>{
+   if(!dragging || e.pointerId!==activePointer)return;
+   const dx=e.clientX-startX, dy=e.clientY-startY;
+   if(Math.abs(dx)>4 || Math.abs(dy)>4)didDrag=true;
+   const width=Math.max(180,rightPage.getBoundingClientRect().width);
+   const progress=Math.max(0,Math.min(1,(-dx)/width));
+   const angle=-Math.min(150,progress*150);
+   rightPage.style.transformOrigin='left center';
+   rightPage.style.transform='rotateY('+angle+'deg)';
+   rightPage.style.filter='brightness('+(1-progress*.22)+')';
+ });
+ function finishCornerDrag(e){
+   if(!dragging || (e.pointerId!==undefined && e.pointerId!==activePointer))return;
+   const dx=e.clientX-startX, dy=e.clientY-startY;
+   const width=Math.max(180,rightPage.getBoundingClientRect().width);
+   const shouldTurn=dx < -Math.max(38,width*.12) && Math.abs(dx)>Math.abs(dy)*.8;
+   resetDrag();
+   rightPage.style.filter='';
+   if(shouldTurn){
+     // Skip the button's synthetic click after a drag.
+     corner.dataset.dragged='true';
+     turnSpread(1);
+   }
+ }
+ corner.addEventListener('pointerup',finishCornerDrag);
+ corner.addEventListener('pointercancel',()=>{resetDrag();rightPage.style.filter=''});
+ corner.addEventListener('click',e=>{
+   if(corner.dataset.dragged==='true'){e.preventDefault();e.stopImmediatePropagation();corner.dataset.dragged='false'}
+ });
+ // Allow dragging anywhere on the page as a swipe gesture, especially on touch screens.
+ pages.addEventListener('pointerdown',e=>{
+   if(pages.hidden || e.target.closest('.page-corner'))return;
+   dragging=true;activePointer=e.pointerId;startX=e.clientX;startY=e.clientY;
+   pages.setPointerCapture?.(e.pointerId);
+ });
+ pages.addEventListener('pointerup',e=>{
+   if(!dragging || e.pointerId!==activePointer)return;
+   const dx=e.clientX-startX,dy=e.clientY-startY;
+   resetDrag();
+   if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.15)turnSpread(dx<0?1:-1);
+ });
+ pages.addEventListener('pointercancel',()=>{resetDrag();rightPage.style.transform='';rightPage.style.filter=''});
 })();
 </script>
 
