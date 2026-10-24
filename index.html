@@ -560,7 +560,6 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  document.getElementById('beginReading').addEventListener('click',begin);prev.addEventListener('click',()=>turn(-1));next.addEventListener('click',()=>turn(1));document.getElementById('closeBook').addEventListener('click',close);
  overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')close();if(e.key==='ArrowRight')turn(1);if(e.key==='ArrowLeft')turn(-1)});
 })();
-})();
 </script>
 
 </body>
