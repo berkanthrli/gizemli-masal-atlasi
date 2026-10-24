@@ -153,9 +153,9 @@ body.reader-mode .book-overlay{display:flex!important;position:fixed;inset:0;pad
 body.reader-mode .book-modal{width:min(1100px,100%);max-height:96vh;overflow:visible;padding:clamp(12px,2vw,24px);border-radius:22px}
 body.reader-mode .storybook{width:min(100%,1000px);height:clamp(390px,68vh,690px)}
 body.reader-mode .book-page{padding:clamp(18px,3vw,42px)}
-body.reader-mode .page-content{font-size:clamp(.9rem,1.35vw,1.15rem);line-height:1.85}
+body.reader-mode .page-content{font-size:clamp(.82rem,1.15vw,1rem);line-height:1.65}
 body.reader-mode .book-hint{padding-bottom:12px}
-@media(max-width:650px){body.reader-mode .storybook{height:clamp(380px,64vh,600px)}body.reader-mode .book-page{padding:12px 10px}body.reader-mode .page-content{font-size:.82rem;line-height:1.65}}
+@media(max-width:650px){body.reader-mode .storybook{height:clamp(380px,64vh,600px)}body.reader-mode .book-page{padding:12px 10px}body.reader-mode .page-content{font-size:.76rem;line-height:1.5}}
 
 /* Interactive storybook reader */
 body.book-open{overflow:hidden}
@@ -551,18 +551,18 @@ document.getElementById('fontSize').addEventListener('change',event=>{
    titleEl.textContent=currentTitle;
    paragraphs=[...story.querySelectorAll('.story-body p')].map(p=>p.innerHTML.trim()).filter(Boolean);
    pageChunks=[];
-   // Split the complete story into page-sized passages (not only between source paragraphs).
-   const fullText=paragraphs.map(par=>par.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim()).join('\n\n');
-   const maxChars=650;
+   const fullText=paragraphs.map(par=>par.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g,' ').trim()).join(' ');
+   const maxChars=380;
    let remaining=fullText;
    while(remaining.length){
-     if(remaining.length<=maxChars){pageChunks.push(['<p>'+escapeHtml(remaining)+'</p>']);break;}
-     let cut=remaining.lastIndexOf(' ',maxChars);
-     const sentenceCut=Math.max(remaining.lastIndexOf('. ',maxChars),remaining.lastIndexOf('! ',maxChars),remaining.lastIndexOf('? ',maxChars));
-     if(sentenceCut>maxChars*0.55)cut=sentenceCut+1;
-     if(cut<maxChars*0.45)cut=maxChars;
+     let cut=Math.min(maxChars,remaining.length);
+     if(cut<remaining.length){
+       const sentenceCut=Math.max(remaining.lastIndexOf('. ',cut),remaining.lastIndexOf('! ',cut),remaining.lastIndexOf('? ',cut));
+       if(sentenceCut>220)cut=sentenceCut+1;
+       else {const space=remaining.lastIndexOf(' ',cut);if(space>220)cut=space;}
+     }
      const part=remaining.slice(0,cut).trim();
-     pageChunks.push(['<p>'+escapeHtml(part)+'</p>']);
+     if(part)pageChunks.push(['<p>'+escapeHtml(part)+'</p>']);
      remaining=remaining.slice(cut).trim();
    }
    if(!pageChunks.length)pageChunks=[['<p>Bu masal için metin bulunamadı.</p>']];
@@ -596,7 +596,7 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  document.querySelectorAll('.open-book').forEach(link=>link.addEventListener('click',e=>{
    if(link.target==='_blank') return;
    e.preventDefault();
-   const url=new URL(window.location.href);url.searchParams.set('masal',link.dataset.story);
+   const url=new URL('index.html',window.location.href);url.searchParams.set('masal',link.dataset.story);url.searchParams.set('v','4');
    window.open(url.toString(),'_blank','noopener');
  }));
  const requestedStory=new URLSearchParams(window.location.search).get('masal');
