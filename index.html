@@ -335,6 +335,12 @@ main:before{
 #bookPages .page.--cover .page-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:none;border:8px ridge #c49a47}
 #bookPages .page.--cover h2{font-size:clamp(2rem,4vw,3.2rem);color:#fff5d9}
 @media(max-width:650px){#bookPages .page-inner{padding:18px 14px 30px}#bookPages .page-text{font-size:.82rem;line-height:1.62}}
+
+#bookPages.fallback-pages{display:block;perspective:1400px}
+#bookPages.fallback-pages .page{position:absolute;inset:0;transition:transform .55s cubic-bezier(.2,.75,.25,1),opacity .35s ease;transform-origin:left center}
+#bookPages.fallback-pages .page[hidden]{display:none!important}
+#bookPages.fallback-pages .page:not([hidden]){animation:fallbackPageIn .55s cubic-bezier(.2,.75,.25,1) both}
+@keyframes fallbackPageIn{from{opacity:.55;transform:rotateY(-10deg) translateX(14px)}to{opacity:1;transform:rotateY(0) translateX(0)}}
 </style>
 </head>
 <body>
@@ -541,19 +547,39 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  document.addEventListener('click',function(e){const link=e.target.closest('a.open-book');if(!link)return;e.preventDefault();e.stopPropagation();openBook(link.dataset.story)},true);
  const titleEl=document.getElementById('bookTitle'),cover=document.getElementById('bookCover'),pages=document.getElementById('bookPages');
  const status=document.getElementById('pageStatus'),prev=document.getElementById('prevPage'),next=document.getElementById('nextPage');
- let currentTitle='',storyId=null,pageFlip=null;
+ let currentTitle='',storyId=null,pageFlip=null,fallbackIndex=0,fallbackPages=[];
  function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
  function chunks(text){const out=[];let rest=text;const max=760;while(rest.length){let cut=Math.min(max,rest.length);if(cut<rest.length){const sentence=Math.max(rest.lastIndexOf('. ',cut),rest.lastIndexOf('! ',cut),rest.lastIndexOf('? ',cut));if(sentence>max*.58)cut=sentence+1;else{const space=rest.lastIndexOf(' ',cut);if(space>max*.55)cut=space}}out.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim()}return out.length?out:['Bu masal için metin bulunamadı.']}
- function update(){if(!pageFlip)return;const i=pageFlip.getCurrentPageIndex(),n=pageFlip.getPageCount();status.textContent='Sayfa '+(i+1)+' / '+n;prev.disabled=i<=0;next.disabled=i>=n-1}
+ function update(){if(pageFlip){const i=pageFlip.getCurrentPageIndex(),n=pageFlip.getPageCount();status.textContent='Sayfa '+(i+1)+' / '+n;prev.disabled=i<=0;next.disabled=i>=n-1;return}const n=fallbackPages.length;status.textContent=n?'Sayfa '+(fallbackIndex+1)+' / '+n:'Kapak';prev.disabled=fallbackIndex<=0;next.disabled=fallbackIndex>=n-1;}
  function destroy(){if(pageFlip){try{pageFlip.destroy()}catch(e){}pageFlip=null}}
- function build(story){destroy();pages.innerHTML='';const cp=document.createElement('div');cp.className='page --cover';cp.innerHTML='<div class="page-inner"><div style="font-size:2.5rem;color:#f8dfa0">✧ ✦ ✧</div><div style="font-size:3rem;color:#f4dfaa">☾</div><div style="font-size:.72rem;letter-spacing:.2em;color:#e9c979;margin-top:14px">GİZEMLİ MASAL ATLASI</div><h2>'+esc(currentTitle)+'</h2><div style="font-size:2rem;color:#e9c979">❦</div><p style="color:#f4dfaa">Masal yolculuğun başlıyor</p></div>';pages.appendChild(cp);
- const text=[...story.querySelectorAll('.story-body p')].map(p=>p.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' ');
- chunks(text).forEach((part,i)=>{const el=document.createElement('div');el.className='page';el.innerHTML='<div class="page-inner"><div class="page-text"><p>'+esc(part)+'</p></div><div class="page-number">'+(i+1)+'</div></div>';pages.appendChild(el)});
+ function build(story){
+   destroy();pages.innerHTML='';pages.classList.remove('fallback-pages');
+   fallbackPages=[];fallbackIndex=0;
+   const text=[...story.querySelectorAll('.story-body p')].map(p=>p.textContent.replace(/\\s+/g,' ').trim()).filter(Boolean).join(' ');
+   chunks(text).forEach((part,i)=>{
+     const el=document.createElement('div');el.className='page';
+     el.innerHTML='<div class="page-inner"><div class="page-text"><p>'+esc(part)+'</p></div><div class="page-number">'+(i+1)+'</div></div>';
+     pages.appendChild(el);fallbackPages.push(el);
+   });
  }
- function init(){if(!window.St||!window.St.PageFlip){status.textContent='Kitap motoru yüklenemedi — Önceki/Sonraki düğmelerini kullan';return}try{destroy();pageFlip=new St.PageFlip(pages,{width:520,height:650,size:'stretch',minWidth:280,maxWidth:1000,minHeight:360,maxHeight:1300,drawShadow:true,flippingTime:900,usePortrait:true,startPage:0,autoSize:true,maxShadowOpacity:.45,showCover:true,mobileScrollSupport:false,useMouseEvents:true,swipeDistance:25});pageFlip.loadFromHTML(pages.querySelectorAll('.page'));pageFlip.on('flip',update);pageFlip.on('init',update);update()}catch(err){pageFlip=null;status.textContent='Kitap hazır — düğmelerle sayfa çevir';prev.disabled=false;next.disabled=false}}
+ function init(){
+   fallbackIndex=0;
+   if(!window.St||!window.St.PageFlip){fallbackMode();return}
+   try{
+     destroy();
+     pageFlip=new St.PageFlip(pages,{width:520,height:650,size:'stretch',minWidth:280,maxWidth:1000,minHeight:360,maxHeight:1300,drawShadow:true,flippingTime:850,usePortrait:true,startPage:0,autoSize:true,maxShadowOpacity:.42,showCover:false,mobileScrollSupport:false,useMouseEvents:true,swipeDistance:25});
+     pageFlip.loadFromHTML(pages.querySelectorAll('.page'));
+     pageFlip.on('flip',update);pageFlip.on('init',update);update();
+   }catch(err){pageFlip=null;fallbackMode()}
+ }
+ function fallbackMode(){
+   pageFlip=null;pages.classList.add('fallback-pages');
+   fallbackPages.forEach((p,i)=>p.hidden=i!==fallbackIndex);
+   update();
+ }
  function openBook(id){const story=document.getElementById('story-'+id);if(!story)return;storyId=id;currentTitle=story.querySelector('h2').textContent.trim();titleEl.textContent=currentTitle;cover.hidden=false;pages.hidden=true;pages.innerHTML='';overlay.classList.add('visible');overlay.setAttribute('aria-hidden','false');document.body.classList.add('book-open');status.textContent='Kapak';prev.disabled=true;next.disabled=false;document.getElementById('beginReading').focus()}
  function begin(){if(!storyId)return;cover.hidden=true;pages.hidden=false;build(document.getElementById('story-'+storyId));requestAnimationFrame(init)}
- function turn(dir){if(!pageFlip)return;if(dir>0)pageFlip.flipNext('bottom');else pageFlip.flipPrev('bottom')}
+ function turn(dir){if(pageFlip){if(dir>0)pageFlip.flipNext('bottom');else pageFlip.flipPrev('bottom');return}if(!fallbackPages.length)return;fallbackIndex=Math.max(0,Math.min(fallbackPages.length-1,fallbackIndex+dir));fallbackMode()}
  function close(){overlay.classList.remove('visible');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('book-open');destroy()}
  // Story links are handled by the capture listener above.
  const requested=new URLSearchParams(location.search).get('masal');if(requested){document.body.classList.add('reader-mode');openBook(requested);setTimeout(begin,100)}
