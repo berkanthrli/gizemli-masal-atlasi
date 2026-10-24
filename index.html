@@ -550,14 +550,23 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  const text=[...story.querySelectorAll('.story-body p')].map(p=>p.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' ');
  chunks(text).forEach((part,i)=>{const el=document.createElement('div');el.className='page';el.innerHTML='<div class="page-inner"><div class="page-text"><p>'+esc(part)+'</p></div><div class="page-number">'+(i+1)+'</div></div>';pages.appendChild(el)});
  }
- function init(){if(!window.St||!window.St.PageFlip){status.textContent='Kitap motoru yüklenemedi';return}destroy();pageFlip=new St.PageFlip(pages,{width:520,height:650,size:'stretch',minWidth:280,maxWidth:1000,minHeight:360,maxHeight:1300,drawShadow:true,flippingTime:900,usePortrait:true,startPage:0,autoSize:true,maxShadowOpacity:.45,showCover:true,mobileScrollSupport:false,useMouseEvents:true,swipeDistance:25});pageFlip.loadFromHTML(pages.querySelectorAll('.page'));pageFlip.on('flip',update);pageFlip.on('init',update);update()}
+ function init(){if(!window.St||!window.St.PageFlip){status.textContent='Kitap motoru yüklenemedi — Önceki/Sonraki düğmelerini kullan';return}try{destroy();pageFlip=new St.PageFlip(pages,{width:520,height:650,size:'stretch',minWidth:280,maxWidth:1000,minHeight:360,maxHeight:1300,drawShadow:true,flippingTime:900,usePortrait:true,startPage:0,autoSize:true,maxShadowOpacity:.45,showCover:true,mobileScrollSupport:false,useMouseEvents:true,swipeDistance:25});pageFlip.loadFromHTML(pages.querySelectorAll('.page'));pageFlip.on('flip',update);pageFlip.on('init',update);update()}catch(err){pageFlip=null;status.textContent='Kitap hazır — düğmelerle sayfa çevir';prev.disabled=false;next.disabled=false}}
  function openBook(id){const story=document.getElementById('story-'+id);if(!story)return;storyId=id;currentTitle=story.querySelector('h2').textContent.trim();titleEl.textContent=currentTitle;cover.hidden=false;pages.hidden=true;pages.innerHTML='';overlay.classList.add('visible');overlay.setAttribute('aria-hidden','false');document.body.classList.add('book-open');status.textContent='Kapak';prev.disabled=true;next.disabled=false;document.getElementById('beginReading').focus()}
  function begin(){if(!storyId)return;cover.hidden=true;pages.hidden=false;build(document.getElementById('story-'+storyId));requestAnimationFrame(init)}
  function turn(dir){if(!pageFlip)return;if(dir>0)pageFlip.flipNext('bottom');else pageFlip.flipPrev('bottom')}
  function close(){overlay.classList.remove('visible');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('book-open');destroy()}
  // Story links are handled by the capture listener above.
  const requested=new URLSearchParams(location.search).get('masal');if(requested){document.body.classList.add('reader-mode');openBook(requested);setTimeout(begin,100)}
- document.getElementById('beginReading').addEventListener('click',begin);prev.addEventListener('click',()=>turn(-1));next.addEventListener('click',()=>turn(1));document.getElementById('closeBook').addEventListener('click',close);
+ // Capture controls at document level so the UI still responds if the flip library intercepts events.
+ document.addEventListener('click',function(e){
+   const target=e.target.closest('#beginReading,#prevPage,#nextPage,#closeBook');
+   if(!target)return;
+   e.preventDefault();e.stopPropagation();
+   if(target.id==='beginReading')begin();
+   else if(target.id==='prevPage')turn(-1);
+   else if(target.id==='nextPage')turn(1);
+   else if(target.id==='closeBook')close();
+ },true);
  overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(!overlay.classList.contains('visible'))return;if(e.key==='Escape')close();if(e.key==='ArrowRight')turn(1);if(e.key==='ArrowLeft')turn(-1)});
 })();
 </script>
