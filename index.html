@@ -571,7 +571,7 @@ document.getElementById('fontSize').addEventListener('change',event=>{
 (()=>{const spark=document.querySelector('.magic-spark');if(!spark)return;let last=0;document.addEventListener('pointermove',e=>{spark.style.left=e.clientX+'px';spark.style.top=e.clientY+'px';spark.classList.add('active');const now=Date.now();if(now-last>90){last=now;const tiny=document.createElement('span');tiny.textContent='✧';tiny.style.cssText=`position:fixed;left:${e.clientX+Math.random()*14-7}px;top:${e.clientY+Math.random()*14-7}px;z-index:9998;pointer-events:none;color:#f3d98f;font-size:${8+Math.random()*9}px;opacity:.7;transition:all .65s ease`;document.body.appendChild(tiny);requestAnimationFrame(()=>{tiny.style.transform='translateY(-13px) scale(.4)';tiny.style.opacity='0'});setTimeout(()=>tiny.remove(),700)}});document.addEventListener('pointerleave',()=>spark.classList.remove('active'));})();
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+<!-- No external JavaScript dependencies; works offline. -->
 <script>
 (()=>{
  const overlay=document.getElementById('bookOverlay'); if(!overlay)return;
