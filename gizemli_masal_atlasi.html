@@ -6,7 +6,7 @@
 <meta name="description" content="Türk masallarından oluşan, suluboya esintili dijital masal atlası.">
 <title>Gizemli Masal Atlası</title>
 <style>
-@import url(''); /* Offline-first: rounded system-font fallbacks are used locally. */
+/* Offline-first: local system-font fallbacks; no external font request. */
 :root{
  --night:#09152f;--midnight:#101f43;--indigo:#1e3158;--blue:#304a72;
  --gold:#e9c979;--gold-soft:#f4dfaa;--parchment:#f8efd9;--paper:#fff9ec;
@@ -218,6 +218,34 @@ body.book-open{overflow:hidden}
 @keyframes overlayIn{from{opacity:0}to{opacity:1}}
 @media(max-width:650px){.book-overlay{padding:8px}.book-modal{padding:58px 8px 14px;border-radius:18px}.storybook{height:clamp(300px,52vh,440px)}.book-page{padding:12px 10px}.page-content{font-size:.76rem;line-height:1.55}.book-controls{gap:8px}.book-control{padding:8px 11px;font-size:.8rem}.book-hint{font-size:.68rem}.book-small-hint{font-size:.68rem}}
 @media(prefers-reduced-motion:reduce){.book-overlay.visible{animation:none}.book-pages.turning .right-page,.book-pages.turning-back .left-page{animation-duration:.01ms}}
+
+/* Mobile and offline reliability refinements */
+@media(max-width:480px){
+  .site-header{padding:12px 4vw}
+  .brand{font-size:.88rem;letter-spacing:.04em}
+  .nav-links{width:100%;gap:10px 14px}
+  .nav-links a{font-size:.82rem}
+  .tools{gap:10px;align-items:stretch}
+  .tools input,.tools select{min-width:0;width:100%;max-width:100%}
+  .book-overlay{padding:6px;align-items:center}
+  .book-modal{width:100%;max-height:96dvh;overflow-y:auto;padding:54px 7px 12px}
+  .storybook{width:100%;height:clamp(260px,48dvh,410px)}
+  .book-pages{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .book-page{padding:10px 7px}
+  .page-content{font-size:.72rem;line-height:1.45;overflow-wrap:anywhere}
+  .page-number{font-size:.68rem}
+  .book-controls{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+  .book-control{padding:9px 10px;font-size:.78rem}
+  #pageStatus{min-width:75px;font-size:.75rem}
+  .book-small-hint{display:none}
+  .book-close{right:9px;top:8px;width:38px;height:38px}
+}
+@media(max-height:620px) and (max-width:700px){
+  .book-modal{max-height:98dvh}
+  .storybook{height:44dvh;min-height:220px}
+  .book-hint{padding-bottom:8px}
+}
+
 
 
 /* Interactive corner-drag page curl for mouse, touch and stylus */
