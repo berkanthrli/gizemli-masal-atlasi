@@ -569,8 +569,8 @@ document.getElementById('fontSize').addEventListener('change',event=>{
  function update(){
    const n=fallbackPages.length;
    status.textContent=n?'Sayfa '+(fallbackIndex+1)+' / '+n:'Kapak';
-   prev.disabled=fallbackIndex<=0;
-   next.disabled=fallbackIndex>=n-1;
+   prev.disabled=cover.hidden===false;
+   next.disabled=cover.hidden===false ? false : fallbackIndex>=n-1;
  }
  function destroy(){}
  function build(story){
