@@ -19,7 +19,7 @@ Ya da aşağıdaki canlı sayfa bağlantısını kullanın.
 
 ## Bağlantılar
 - Canlı sayfa: https://berkanthrli.github.io/gizemli-masal-atlasi/
-- Sunum videosu (YouTube): https://www.youtube.com/watch?v=VIDEO-KIMLIGI
+- Sunum videosu (YouTube): https://www.youtube.com/watch?v=ugbjlfLZfmA
 - Rapor: `rapor/86230030_BerkantOzkus_vize.pdf` (LaTeX kaynakları `rapor/` klasöründe)
 
 ## Kaynak
